@@ -3,11 +3,20 @@ const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
+const session = require('express-session');
+const mongoDBStore = require('connect-mongodb-session')(session)
+const MONGODB_URI =   'mongodb+srv://ayush:aZNSrLNh6ZqR8Vbb@cluster0.clqvv.mongodb.net/shop?'
+
+
 
 const errorController = require('./controllers/error');
 const User = require('./models/user');
 
 const app = express();
+const store = new mongoDBStore({
+  uri:MONGODB_URI,
+  collection: 'sessions'
+})
 
 app.set('view engine', 'ejs');
 app.set('views', 'views');
@@ -18,9 +27,13 @@ const authRoutes = require('./routes/auth');
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(session({secret:'my secret', resave:false, saveUninitialized:false, store:store}))
 
 app.use((req, res, next) => {
-  User.findById('623a04b8d6327533e8a4a069')
+  if(!req.session.user){
+    return next();
+  }
+  User.findById(req.session.user._id)
     .then(user => {
       req.user = user;
       next();
@@ -36,14 +49,14 @@ app.use(errorController.get404);
 
 mongoose
   .connect(
-    'mongodb+srv://ayush:aZNSrLNh6ZqR8Vbb@cluster0.clqvv.mongodb.net/shop?retryWrites=true&w=majority'
+    MONGODB_URI
     )
   .then(result => {
     User.findOne().then(user => {
       if (!user) {
         const user = new User({
-          name: 'Max',
-          email: 'max@test.com',
+          name: 'Ayush',
+          email: 'Ayush@test.com',
           cart: {
             items: []
           }
